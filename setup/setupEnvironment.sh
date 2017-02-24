@@ -135,7 +135,7 @@ cat elasticsearch_service_policy.json |
 aws es update-elasticsearch-domain-config --domain-name ${ES_DOMAIN_NAME} --access-policies file:///tmp/elasticsearch_service_policy.json
 
 ## We need the endpoint url now, but the ES domain is most-likely processing right now. Let's wait until it finishes
-while [ 'True' == $(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query  "DomainStatus.Processing" --output text) ];
+while [ 'None' == $(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query  "DomainStatus.Endpoint" --output text) ];
 do
     echo "Waiting for the Elasticsearch domain to finish processing. Sleeping..."
     sleep 30
@@ -143,8 +143,8 @@ done
 
 ES_ENDPOINT=$(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query "DomainStatus.Endpoint" --output text)
 
-# Replace all of the property values in Properties.template into Properties.kt
-cat ../src/main/kotlin/com/budilov/Properties.template |
+# Replace all of the property values into Properties.kt
+cat ../src/main/kotlin/com/budilov/Properties.kt |
     sed 's#REGION_REPLACE_ME#'${REGION}'#g' |
     sed 's#ACCOUNT_REPLACE_ME#'${ACCOUNT_NUMBER}'#g' |
     sed 's#COGNITO_POOL_ID_REPLACE_ME#'${COGNITO_POOL_ID}'#g' |
@@ -190,7 +190,7 @@ then
 fi
 echo
 echo "Removing S3 bucket . . ."
-aws s3 rb s3://${BUCKET_NAME}
+aws s3 rb --force s3://${BUCKET_NAME}
 echo
 echo "Removing Lambda functions . . ."
 aws lambda delete-function --function-name ${FUNCTION_REK_ADD}
@@ -210,5 +210,33 @@ echo "Don't forget to remove the IAM role ${ROLE_NAME}"
 echo
 echo
 EOF
+
+cat << EOF2 > /tmp/sprcp.sh
+#!/usr/bin/env bash
+
+   if [ -z "\$1" ] ; then
+     echo "No image name was passed"
+     exit -1
+   fi
+
+    aws s3 cp \$1 s3://${BUCKET_NAME}/usercontent/${COGNITO_POOL_ID}/
+EOF2
+chmod +x /tmp/sprcp.sh
+
+cat << EOF3 > /tmp/sprrm.sh
+#!/usr/bin/env bash
+
+   if [ -z "\$1" ] ; then
+     echo "No image name was passed"
+     exit -1
+   fi
+
+    aws s3 rm s3://${BUCKET_NAME}/usercontent/${COGNITO_POOL_ID}/\$1
+EOF3
+chmod +x /tmp/sprrm.sh
+
+cat PutTest.json |
+    sed 's#BUCKET_NAME#'${BUCKET_NAME}'#g' |
+    sed 's#COGNITO_POOL_ID#'${COGNITO_POOL_ID}'#g' > /tmp/PutTest.json
 
 echo "You're done"
