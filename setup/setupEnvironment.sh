@@ -207,6 +207,16 @@ echo
 echo "Removing the API gateway . . ."
 aws apigateway delete-rest-api --rest-api-id ${GATEWAY_ID}
 echo
+echo "Removing the log group . . . "
+LOG_GROUP_NAME=$(aws logs describe-log-groups --query 'logGroups[?ends_with(logGroupName,to_string(`$ROOT_NAME`))].logGroupName
+' --output text)
+if [ -z ${LOG_GROUP_NAME+x} ]; then 
+	echo "No log group . . . skipping . . ."; 
+else 
+	aws logs delete-log-group --log-group-name ${LOG_GROUP_NAME}
+fi
+echo
+echo
 echo "Don't forget to remove the IAM role ${ROLE_NAME}"
 echo
 echo
@@ -240,4 +250,4 @@ cat PutTest.json |
     sed 's#BUCKET_NAME#'${BUCKET_NAME}'#g' |
     sed 's#COGNITO_POOL_ID#'${COGNITO_POOL_ID}'#g' > /tmp/PutTest.json
 
-echo "You're done"
+echo "You're done ($ROOT_NAME)"
