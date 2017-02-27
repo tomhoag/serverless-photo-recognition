@@ -8,6 +8,8 @@
 listJars/
 gradlew.bat
 repo/
+dump.rdb
+*.bak
 
 setup/config*sh
 setup/curl*

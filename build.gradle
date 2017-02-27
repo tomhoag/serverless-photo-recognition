@@ -14,15 +14,13 @@ buildscript {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         classpath "io.spring.gradle:dependency-management-plugin:$gradle_deps"
     }
-
-
 }
 
 apply plugin: 'kotlin'
 apply plugin: 'application'
 apply plugin: "io.spring.dependency-management"
 
-mainClassName = 'com.budilov.AddPhotoHandler'
+mainClassName = 'com.squarepi.ECLabelCountServiceKt'
 
 defaultTasks 'run'
 
@@ -34,10 +32,11 @@ repositories {
 }
 
 jar {
-    // Not really needed here
-    manifest {
-        attributes 'Main-Class': 'com.budilov.AddPhotoHandler'
-    }
+    // Not really needed here -- was attributes 'Main-Class': 'com.budilov.AddPhotoHandler'
+
+    //manifest {
+    //    attributes 'Main-Class': 'com.squarepi.ECLabelCountService'
+    //}
 
     // This line of code recursively collects and copies all of a project's files
     // and adds them to the JAR itself. One can extend this task, to skip certain
@@ -45,8 +44,10 @@ jar {
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
 }
 
-task listJars << {
-    configurations.compile.each { File file -> println file.name }
+task listJars {
+	doLast{
+    	configurations.compile.each { File file -> println file.name }
+    }
 }
 
 dependencyManagement {
@@ -61,11 +62,13 @@ dependencies {
 
     // AWS SDK
     compile "com.amazonaws:aws-java-sdk-lambda"
+    compile "com.amazonaws:aws-java-sdk-elasticache"
     compile "com.amazonaws:aws-java-sdk-s3"
     compile "com.amazonaws:aws-java-sdk-rekognition"
     compile "com.amazonaws:aws-lambda-java-events:1.3.0"
     compile "com.amazonaws:aws-lambda-java-core:1.1.0"
     compile "commons-io:commons-io:2.5"
+    compile "redis.clients:jedis:2.9.0"
 
     // ElasticSearch
     compile "io.searchbox:jest:$jest_version"

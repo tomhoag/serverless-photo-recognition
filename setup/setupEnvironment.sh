@@ -41,7 +41,7 @@ fi
 
 EOF
 
-# Methods
+# Methods TODO add configurable VPC info
 createLambdaFunction() {
    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
      echo "No parameters were passed"
@@ -55,6 +55,7 @@ createLambdaFunction() {
         --handler $4 \
         --runtime java8 \
         --memory-size 192 \
+        --vpc-config SubnetIds=subnet-8a6540d1,SecurityGroupIds=sg-99ebfbe5 \
         --timeout 20
 
 cat << EOF >> ${DELETE_SCRIPT}
@@ -95,6 +96,8 @@ aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aw
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess
+aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 
 # Creating the role & role policy deletion
 cat << EOF >> ${DELETE_SCRIPT}
@@ -103,6 +106,8 @@ aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aw
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess
+aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
 aws iam delete-role --role-name ${ROLE_NAME}
 
 EOF
@@ -168,32 +173,35 @@ echo "Creating the events"
 aws s3api put-bucket-notification-configuration --bucket ${BUCKET_NAME} --notification-configuration file:///tmp/s3-notifications.json
 
 # Setup Elasticsearch
-echo "Setup Elasticsearch with a domain of ${ES_DOMAIN_NAME}"
-aws es create-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --elasticsearch-version 5.1 --elasticsearch-cluster-config InstanceType=t2.small.elasticsearch,InstanceCount=1 --ebs-options EBSEnabled=true,VolumeType=standard,VolumeSize=10
-cat elasticsearch_service_policy.json |
-    sed 's#ACCOUNT_NAME_REPLACE_ME#'${ACCOUNT_NUMBER}'#g' |
-    sed 's#REGION_REPLACE_ME#'${REGION}'#g' |
-    sed 's#ROLE_NAME_REPLACE_ME#'${ROLE_NAME}'#g' |
-    sed 's#ES_DOMAIN_NAME_REPLACE_ME#'${ES_DOMAIN_NAME}'#g' |
-    sed 's#EXTERNAL_IP_ADDRESS_REPLACE_ME#'${EXTERNAL_IP_ADDRESS}'#g' > /tmp/elasticsearch_service_policy.json
-aws es update-elasticsearch-domain-config --domain-name ${ES_DOMAIN_NAME} --access-policies file:///tmp/elasticsearch_service_policy.json
+# echo "Setup Elasticsearch with a domain of ${ES_DOMAIN_NAME}"
+# aws es create-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --elasticsearch-version 5.1 --elasticsearch-cluster-config # InstanceType=t2.small.elasticsearch,InstanceCount=1 --ebs-options EBSEnabled=true,VolumeType=standard,VolumeSize=10
+# cat elasticsearch_service_policy.json |
+#     sed 's#ACCOUNT_NAME_REPLACE_ME#'${ACCOUNT_NUMBER}'#g' |
+#     sed 's#REGION_REPLACE_ME#'${REGION}'#g' |
+#     sed 's#ROLE_NAME_REPLACE_ME#'${ROLE_NAME}'#g' |
+#     sed 's#ES_DOMAIN_NAME_REPLACE_ME#'${ES_DOMAIN_NAME}'#g' |
+#     sed 's#EXTERNAL_IP_ADDRESS_REPLACE_ME#'${EXTERNAL_IP_ADDRESS}'#g' > /tmp/elasticsearch_service_policy.json
+# aws es update-elasticsearch-domain-config --domain-name ${ES_DOMAIN_NAME} --access-policies file:///tmp/elasticsearch_service_policy.json
 
 ## We need the endpoint url now, but the ES domain is most-likely processing right now. Let's wait until it finishes
-while [ 'None' == $(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query "DomainStatus.Endpoint" --output text) ];
-do
-    echo "Waiting for the ES domain ${ES_DOMAIN_NAME} to finish processing. Sleeping..."
-    sleep 30
-done
+# while [ 'None' == $(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query "DomainStatus.Endpoint" --output text) ];
+# do
+#     echo "Waiting for the ES domain ${ES_DOMAIN_NAME} to finish processing. Sleeping..."
+#     sleep 30
+# done
 
-ES_ENDPOINT=$(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query "DomainStatus.Endpoint" --output text)
-echo "Got the ES endpoint: ${ES_ENDPOINT}"
+# ES_ENDPOINT=$(aws es describe-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME} --query "DomainStatus.Endpoint" --output text)
+# echo "Got the ES endpoint: ${ES_ENDPOINT}"
+ES_ENPOINT="NOT_IN_USE"
 
 # Create delete ES domain
-cat << EOF >> ${DELETE_SCRIPT}
-echo "Deleting the ES domain"
-aws es delete-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME}
+# cat << EOF >> ${DELETE_SCRIPT}
+# echo "Deleting the ES domain"
+# aws es delete-elasticsearch-domain --domain-name ${ES_DOMAIN_NAME}
+#
+# EOF
 
-EOF
+# TODO -- automate setup of elasticache/redis
 
 # Replace all of the property values in Properties.kt
 sed -i.bak 's#REGION_REPLACE_ME#'${REGION}'#g' ../src/main/kotlin/com/budilov/Properties.kt

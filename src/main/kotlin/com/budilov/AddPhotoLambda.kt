@@ -3,7 +3,8 @@ package com.budilov
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestHandler
 import com.amazonaws.services.lambda.runtime.events.S3Event
-import com.budilov.db.ESPictureService
+//import com.budilov.db.ESPictureService
+import com.squarepi.ECLabelCountService
 import com.budilov.pojo.PictureItem
 import com.budilov.rekognition.RekognitionService
 import java.net.URLDecoder
@@ -16,7 +17,8 @@ import java.net.URLDecoder
 class AddPhotoLambda : RequestHandler<S3Event, String> {
 
     private val rekognition = RekognitionService()
-    private val esService = ESPictureService()
+    //private val esService = ESPictureService()
+    private val ecService = ECLabelCountService()
 
     /**
      * 1. Get the s3 bucket and object name in question
@@ -46,10 +48,13 @@ class AddPhotoLambda : RequestHandler<S3Event, String> {
             logger.log("Saving picture: ${picture}")
 
             // Save the picture to ElasticSearch
-            esService.add(cognitoId, picture)
+            // esService.add(cognitoId, picture)
+            
+            // Save the picture labels to Elaticache
+            ecService.add(cognitoId, labels)
 
         } else {
-            logger.log("No labels returned. Not saving to ES")
+            logger.log("No labels returned. Not saving to ES or EC")
             //todo: create an actionable event to replay the flow
         }
 
