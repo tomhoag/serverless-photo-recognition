@@ -1,4 +1,3 @@
-src/main/kotlin/com/squarepi/*
 *.iml
 .gradle
 /local.properties
