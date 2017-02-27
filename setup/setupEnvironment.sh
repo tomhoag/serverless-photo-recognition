@@ -56,7 +56,7 @@ createLambdaFunction() {
         --runtime java8 \
         --memory-size 192 \
         --vpc-config SubnetIds=subnet-8a6540d1,SecurityGroupIds=sg-99ebfbe5 \
-        --timeout 20
+        --timeout 60
 
 cat << EOF >> ${DELETE_SCRIPT}
 echo "Deleting the " $2 " Lambda function"
