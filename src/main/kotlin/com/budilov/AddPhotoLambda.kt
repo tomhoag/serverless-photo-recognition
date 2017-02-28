@@ -40,27 +40,29 @@ class AddPhotoLambda : RequestHandler<S3Event, String> {
 
         // Get the cognito id from the object name (it's a prefix)
         val cognitoId = srcKey.split("/")[1]
-        logger.log("Cognito ID: ${cognitoId}")
 
         val labels = rekognition.getLabels(srcBucket, srcKey)
-        
-        logger.log("rekognition label count: " + labels.size)
-        
+                
         if (labels.isNotEmpty()) {
-            val picture = PictureItem(srcKeyEncoded.hashCode().toString(), srcBucket + Properties._BUCKET_URL + "/" + srcKey, labels, null)
-            logger.log("Saving picture: ${picture}")
-
+            //val picture = PictureItem(srcKeyEncoded.hashCode().toString(), srcBucket + Properties._BUCKET_URL + "/" + srcKey, labels, null)
+            //logger.log("Saving picture: ${picture}")
             // Save the picture to ElasticSearch
             // esService.add(cognitoId, picture)
             
             // Save the picture labels to Elaticache
-            logger.log(ecService.config())
             ecService.add(cognitoId, labels)
 
         } else {
             logger.log("No labels returned. Not saving to ES or EC")
             //todo: create an actionable event to replay the flow
         }
+        
+        val map = ecService.getLabelCount(cognitoId)
+                
+		for ((key, value) in map)
+		{
+			System.out.println(key + ":" + value);
+		}
 
         return "Ok"
     }

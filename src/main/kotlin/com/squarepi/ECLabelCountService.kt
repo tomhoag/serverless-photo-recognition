@@ -5,7 +5,11 @@ import com.amazonaws.auth.EnvironmentVariableCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.elasticache.*
 import com.amazonaws.services.elasticache.model.*
-//import com.budilov.Properties
+
+import com.squarepi.pojo.LabelCountItem
+
+import com.budilov.Properties
+
 import redis.clients.jedis.*
 
 
@@ -18,8 +22,6 @@ fun main(args: Array<String>) {
     
     val ec = ECLabelCountService()
     
-    
-
 	val list = listOf("Hello", "World", "!")
     ec.add("foo",list)
     
@@ -28,75 +30,47 @@ fun main(args: Array<String>) {
 class ECLabelCountService {
 	
 	//private val ecService = AmazonElastiCacheClientBuilder.defaultClient()
-	private val host: String
-	private val port: Int
+	private var host: String
+	private var port: Int
 	
 	private val jedis: Jedis
 
 	init {
+		
+		//host = "redis-19727.c8.us-east-1-4.ec2.cloud.redislabs.com"
+		//port = 19727
 
-		//val accessKey = "<foo>"
-		//val accessSecret = "<bar>"
-		//val credentials = BasicAWSCredentials(accessKey, accessSecret)
+		host = "redis-19727.c8.us-east-1-4.ec2.cloud.redislabs.com"
+		port = 19727
 		
-		//val client = AmazonElastiCacheClient(credentials);
-		val client = AmazonElastiCacheClient(EnvironmentVariableCredentialsProvider());
-		
-		/*
-		var dccRequest = DescribeCacheClustersRequest();
-		dccRequest.setShowCacheNodeInfo(true);
-        //dccRequest.withCacheClusterId("spr-count-001")
-        
-		val clusterResult = client.describeCacheClusters(dccRequest);
-		//println("clusterResult: " + clusterResult)
-		
-		val cacheClusters = clusterResult.getCacheClusters();
-
-		for (cacheCluster in cacheClusters) {
-			//println("cacheCluster: " + cacheCluster)
-			var cacheNodes = cacheCluster.getCacheNodes();
-			for(node in cacheNodes) {
-				println("node: " + node.endpoint.address + ":" + node.endpoint.port )
-			}
-		}
-		
-		host = cacheClusters[0].cacheNodes[0].endpoint.address
-		port = cacheClusters[0].cacheNodes[0].endpoint.port
-		*/
-		
-		host = "spr-count3.hcehne.0001.use1.cache.amazonaws.com"
-		port = 6379
-		
-		//host = "localhost"
-		//port = 6379
 		println("jedis: " + host + ":" + port)
 
 		jedis = Jedis(host,port); 
-
-		jedis.connect() 
-		
+		jedis.connect() 		
 		jedis.incr("restarts")
-		
 		println("jedis restarts: " + jedis.get("restarts"))
-
-
 	}
 	
 	fun config(): String {
 		return host + ":" + port
 	}
 
-	fun add(userId: String, labels: List<String>) {
-		
-		//println("host: " + host + " port: " + port)
-		//val jedis = Jedis(host,port);
- 
-		//jedis.connect(); 
-		
-		for(label in labels) {
-			val key = userId+"|"+label
-			jedis.incr(key)	
+	fun add(userId: String, labels: List<String>) { 
+
+		for(label in labels) {	
+			jedis.hincrBy(userId, label, 1)
 		}	
+	}
+	
+	fun getLabelCount(userId: String): List<LabelCountItem> {
+		val map = jedis.hgetAll(userId)
+		
+		var list = mutableListOf<LabelCountItem>()
+		for ((key, value) in map)
+		{
+			list.add(LabelCountItem(key, value))
+		}
+		return list
 	}
 	
 

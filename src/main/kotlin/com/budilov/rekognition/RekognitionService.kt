@@ -1,8 +1,8 @@
 package com.budilov.rekognition
 
-
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider
 import com.amazonaws.services.rekognition.AmazonRekognitionClient
+import com.amazonaws.services.rekognition.AmazonRekognitionClientBuilder
 import com.amazonaws.services.rekognition.model.DetectLabelsRequest
 import com.amazonaws.services.rekognition.model.Image
 import com.amazonaws.services.rekognition.model.S3Object
@@ -17,7 +17,9 @@ import com.budilov.Properties
 
 class RekognitionService {
 
-    val rekognitionClient = AmazonRekognitionClient(EnvironmentVariableCredentialsProvider())
+    //val rekognitionClient = AmazonRekognitionClient(EnvironmentVariableCredentialsProvider())
+
+    val rekognitionClient = AmazonRekognitionClientBuilder.standard().withCredentials(EnvironmentVariableCredentialsProvider()).withRegion(Properties._REGION).build()
 
     /**
      * Returns a list of Rekognition labels for a particular picture in the specified
@@ -25,12 +27,12 @@ class RekognitionService {
      */
     fun getLabels(bucketName: String, objectName: String): List<String> {
         val s3Object = S3Object().withBucket(bucketName).withName(objectName)
-
+        
         val req = DetectLabelsRequest()
         req.image = Image().withS3Object(s3Object)
-
-        rekognitionClient.setEndpoint(Properties._REKOGNITION_URL)
-        rekognitionClient.signerRegionOverride = Properties._REGION
+        
+        //rekognitionClient.setEndpoint(Properties._REKOGNITION_URL)
+        //rekognitionClient.signerRegionOverride = Properties._REGION
 
         val res = rekognitionClient.detectLabels(req)
 

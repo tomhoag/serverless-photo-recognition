@@ -16,7 +16,8 @@ JAR_LOCATION=../build/libs/rekognition-rest-1.0-SNAPSHOT.jar
 FUNCTION_REK_SEARCH=rekognition-search-picture-${ROOT_NAME}
 FUNCTION_REK_ADD=rekognition-add-picture-${ROOT_NAME}
 FUNCTION_REK_DEL=rekognition-del-picture-${ROOT_NAME}
-FUNCTION_REK_SEARCH_HANDLER=com.budilov.SearchPhotosHandler
+#FUNCTION_REK_SEARCH_HANDLER=com.budilov.SearchPhotosHandler
+FUNCTION_REK_SEARCH_HANDLER=com.squarepi.SearchPhotosHandler
 FUNCTION_REK_ADD_HANDLER=com.budilov.AddPhotoLambda
 FUNCTION_REK_DEL_HANDLER=com.budilov.RemovePhotoLambda
 
@@ -55,7 +56,7 @@ createLambdaFunction() {
         --handler $4 \
         --runtime java8 \
         --memory-size 192 \
-        --vpc-config SubnetIds=subnet-8a6540d1,SecurityGroupIds=sg-99ebfbe5 \
+#        --vpc-config SubnetIds=subnet-8a6540d1,SecurityGroupIds=sg-99ebfbe5 \
         --timeout 60
 
 cat << EOF >> ${DELETE_SCRIPT}
@@ -92,22 +93,24 @@ POOL_ARN_REPLACE_ME=arn:aws:cognito-idp:${REGION}:${ACCOUNT_NUMBER}:userpool/${U
 
 # Create IAM roles
 aws iam create-role --role-name ${ROLE_NAME} --assume-role-policy-document file://s3-to-es-role-trust-relationship.json
-aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonESFullAccess
+# aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonESFullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess
 aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+aws iam attach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AWSLambdaFullAccess
 
 # Creating the role & role policy deletion
 cat << EOF >> ${DELETE_SCRIPT}
 echo "Detaching ${ROLE_NAME}'s policies and deleting role"
-aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonESFullAccess
+# aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonESFullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonRekognitionFullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonS3FullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AmazonElastiCacheFullAccess
 aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole
+aws iam detach-role-policy --role-name ${ROLE_NAME} --policy-arn arn:aws:iam::aws:policy/AWSLambdaFullAccess
 aws iam delete-role --role-name ${ROLE_NAME}
 
 EOF

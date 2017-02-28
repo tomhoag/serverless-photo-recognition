@@ -32,6 +32,8 @@ cd ..
 ./gradlew clean
 ./gradlew build
 cd setup
+
+
 updateFunction ${REGION} ${FUNCTION_REK_ADD} ${JAR_LOCATION}
 updateFunction ${REGION} ${FUNCTION_REK_DEL} ${JAR_LOCATION}
 updateFunction ${REGION} ${FUNCTION_REK_SEARCH} ${JAR_LOCATION}
