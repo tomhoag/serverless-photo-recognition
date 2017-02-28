@@ -16,8 +16,10 @@ JAR_LOCATION=../build/libs/rekognition-rest-1.0-SNAPSHOT.jar
 FUNCTION_REK_SEARCH=rekognition-search-picture-${ROOT_NAME}
 FUNCTION_REK_ADD=rekognition-add-picture-${ROOT_NAME}
 FUNCTION_REK_DEL=rekognition-del-picture-${ROOT_NAME}
-#FUNCTION_REK_SEARCH_HANDLER=com.budilov.SearchPhotosHandler
-FUNCTION_REK_SEARCH_HANDLER=com.squarepi.SearchPhotosHandler
+FUNCTION_REK_LABEL=rekognition-label-picture-${ROOT_NAME}
+
+FUNCTION_REK_SEARCH_HANDLER=com.budilov.SearchPhotosHandler
+FUNCTION_REK_LABEL_HANDLER=com.squarepi.SearchPhotosHandler
 FUNCTION_REK_ADD_HANDLER=com.budilov.AddPhotoLambda
 FUNCTION_REK_DEL_HANDLER=com.budilov.RemovePhotoLambda
 
@@ -42,7 +44,6 @@ fi
 
 EOF
 
-# Methods TODO add configurable VPC info
 createLambdaFunction() {
    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ] || [ -z "$4" ]; then
      echo "No parameters were passed"
@@ -144,6 +145,9 @@ REKOGNITION_DELETE_FUNCTION_ARN=$(grep FunctionArn /tmp/dellambdaoutput | awk '{
 createLambdaFunction ${REGION} ${FUNCTION_REK_SEARCH} ${JAR_LOCATION} ${FUNCTION_REK_SEARCH_HANDLER} > /tmp/searchlambdaoutput
 REKOGNITION_SEARCH_FUNCTION_ARN=$(grep FunctionArn /tmp/searchlambdaoutput | awk '{print $2}' | xargs |sed -e 's/^"//'  -e 's/"$//' -e 's/,$//')
 
+createLambdaFunction ${REGION} ${FUNCTION_REK_LABEL} ${JAR_LOCATION} ${FUNCTION_REK_SEARCH_HANDLER} > /tmp/searchlambdaoutput
+REKOGNITION_LABEL_FUNCTION_ARN=$(grep FunctionArn /tmp/searchlambdaoutput | awk '{print $2}' | xargs |sed -e 's/^"//'  -e 's/"$//' -e 's/,$//')
+
 # Setup the S3 events
 echo "Setting up the S3 Lambda events"
 
@@ -225,14 +229,16 @@ updateFunction ${REGION} ${FUNCTION_REK_SEARCH} ${JAR_LOCATION}
 
 # Import your API Gateway Swagger template. This command can run after the Cognito User Pool is created
 ## First substitute values in the swagger file: COGNITO_POOL_NAME_REPLACE_ME,
-## POOL_ARN_REPLACE_ME, REKOGNITION_ADD_FUNCTION, REKOGNITION_DELETE_FUNCTION, REKOGNITION_SEARCH_FUNCTION
-echo "Preparing the swagger template. REGION: " ${REGION} " COGNITO_POOL_NAME: " ${COGNITO_POOL_NAME_REPLACE_ME} " POOL_ARN_REPLACE_ME: " ${POOL_ARN_REPLACE_ME} " REKOGNITION_SEARCH_FUNCTION_ARN: " ${REKOGNITION_SEARCH_FUNCTION_ARN}
+## POOL_ARN_REPLACE_ME, REKOGNITION_ADD_FUNCTION, REKOGNITION_DELETE_FUNCTION, REKOGNITION_SEARCH_FUNCTION, REKOGNITION_LABEL_FUNCTION
+echo "Preparing the swagger template. REGION: " ${REGION} " COGNITO_POOL_NAME: " ${COGNITO_POOL_NAME_REPLACE_ME} " POOL_ARN_REPLACE_ME: " ${POOL_ARN_REPLACE_ME} " REKOGNITION_SEARCH_FUNCTION_ARN: " ${REKOGNITION_SEARCH_FUNCTION_ARN} "REKOGNITION_LABEL_FUNCTION_ARN:" ${REKOGNITION_LABEL_FUNCTION_ARN}
 cat apigateway-swagger.json |
     sed 's#REGION_REPLACE_ME#'${REGION}'#g' |
     sed 's#COGNITO_POOL_NAME_REPLACE_ME#'${COGNITO_POOL_NAME_REPLACE_ME}'#g' |
     sed 's#POOL_ARN_REPLACE_ME#'${POOL_ARN_REPLACE_ME}'#g' |
     sed 's#API_GATEWAY_NAME_REPLACE_ME#'${API_GATEWAY_NAME}'#g' |
-    sed 's#REKOGNITION_SEARCH_FUNCTION_ARN_REPLACE_ME#'${REKOGNITION_SEARCH_FUNCTION_ARN}'#g' > /tmp/apigateway-swagger.json
+    sed 's#API_GATEWAY_NAME_REPLACE_ME#'${API_GATEWAY_NAME}'#g' |
+    sed 's#REKOGNITION_SEARCH_FUNCTION_ARN_REPLACE_ME#'${REKOGNITION_SEARCH_FUNCTION_ARN}'#g' |
+    sed 's#REKOGNITION_LABEL_FUNCTION_ARN_REPLACE_ME#'${REKOGNITION_LABEL_FUNCTION_ARN}'#g' > /tmp/apigateway-swagger.json
 
 echo "Importing the swagger template"
 aws apigateway import-rest-api --body 'file:///tmp/apigateway-swagger.json' --region ${REGION} > /tmp/apigateway-import-api
@@ -243,13 +249,21 @@ echo "Deploying the gateway with id of " ${GATEWAY_ID} " to prd"
 aws apigateway create-deployment --rest-api-id ${GATEWAY_ID} --stage-name prod
 API_GATEWAY_URL="https://${GATEWAY_ID}.execute-api.${REGION}.amazonaws.com/prod"
 
-# Grant the API Gateway access to invoke the Lambda function
+# Grant the API Gateway access to invoke the search Lambda function
 aws lambda add-permission \
 --function-name ${FUNCTION_REK_SEARCH} \
 --statement-id apigateway-prod \
 --action lambda:InvokeFunction \
 --principal apigateway.amazonaws.com \
 --source-arn "arn:aws:execute-api:${REGION}:${ACCOUNT_NUMBER}:${GATEWAY_ID}/prod/POST/picture/search"
+
+# Grant the API Gateway access to invoke the label Lambda function
+aws lambda add-permission \
+--function-name ${FUNCTION_REK_LABEL} \
+--statement-id apigateway-prod \
+--action lambda:InvokeFunction \
+--principal apigateway.amazonaws.com \
+--source-arn "arn:aws:execute-api:${REGION}:${ACCOUNT_NUMBER}:${GATEWAY_ID}/prod/POST/labels"
 
 ## Create a script that will remove (most) all of the AWS resources created
 cat << EOF >> ${DELETE_SCRIPT}
