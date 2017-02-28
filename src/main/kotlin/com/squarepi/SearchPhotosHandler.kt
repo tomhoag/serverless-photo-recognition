@@ -1,21 +1,21 @@
 package com.squarepi
 
+import com.squarepi.pojo.LabelCountItem
+
 import com.amazonaws.auth.AnonymousAWSCredentials
 import com.amazonaws.services.cognitoidentity.AmazonCognitoIdentity
 import com.amazonaws.services.cognitoidentity.AmazonCognitoIdentityClient
 import com.amazonaws.services.cognitoidentity.model.GetIdRequest
 import com.amazonaws.services.lambda.runtime.Context
 import com.amazonaws.services.lambda.runtime.RequestHandler
-//import com.budilov.db.ESPictureService
+
 import com.budilov.pojo.ApigatewayRequest
-//import com.budilov.pojo.PictureItem
-//import com.budilov.s3.S3Service
+import com.budilov.Properties
+
 import com.google.gson.Gson
+
 import java.util.*
 
-import com.budilov.Properties
-import com.squarepi.pojo.LabelCountItem
-import com.amazonaws.services.lambda.runtime.LambdaLogger
 
 
 /**
@@ -29,10 +29,9 @@ import com.amazonaws.services.lambda.runtime.LambdaLogger
  */
 
 class SearchPhotosHandler : RequestHandler<ApigatewayRequest.Input, com.squarepi.SearchPhotosHandler.SearchResponse> {
-    //private val esService = ESPictureService()
+
     private val ecService = ECLabelCountService()
     
-    //private val searchKeyName = "search-key"
     private val identityClient: AmazonCognitoIdentity = AmazonCognitoIdentityClient(AnonymousAWSCredentials())
 
     private val _RESPONSE_EMPTY = "Input parameters weren't there"
@@ -57,21 +56,13 @@ class SearchPhotosHandler : RequestHandler<ApigatewayRequest.Input, com.squarepi
         if (request == null || context == null) {
             logger?.log("request or context is null")
         } else {
-            //val searchString = request.headers?.get(searchKeyName) ?: ""
-            //val pictureList: List<PictureItem> = esService.search(getCognitoId(request.headers?.get("Authorization") ?: ""), searchString)
-	        //logger?.log("Found pictures: " + pictureList)
-	        
-	        val cogid = getCognitoId(request.headers?.get("Authorization") ?: "")
-	        
-	        logger?.log("cogId: " + cogid )
 	        
 			val labelList: List<LabelCountItem> = ecService.getLabelCount(getCognitoId(request.headers?.get("Authorization") ?: ""))
-            logger?.log("Found pictures: " + labelList)
+            logger?.log("Found labels: " + labelList)
 
             val headers: MutableMap<String, String> = HashMap()
             headers.put("Content-Type", "application/json")
 
-            //return SearchResponse(200, headers, Gson().toJson(ResponseBody("Success", pictureList)))
             return SearchResponse(200, headers, Gson().toJson(ResponseBody("Success", labelList)))
         }
         return SearchResponse(400, null, """{"message":"$_RESPONSE_EMPTY"}""")
@@ -85,15 +76,11 @@ class SearchPhotosHandler : RequestHandler<ApigatewayRequest.Input, com.squarepi
      */
     fun getCognitoId(authToken: String): String {
 	    
-	    println("here!")
         val idRequest = GetIdRequest()
-        println("here2")
         idRequest.accountId = Properties._ACCOUNT_NUMBER
         idRequest.identityPoolId = Properties._COGNITO_POOL_ID
         idRequest.logins = mapOf(Pair(Properties._COGNITO_POOL_ID_IDP_NAME, authToken))
-        
-        println("idRequest: " + idRequest)
-
+       
         val idResp = identityClient.getId(idRequest)
 
         return idResp.identityId ?: ""

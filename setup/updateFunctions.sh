@@ -14,6 +14,7 @@ JAR_LOCATION=../build/libs/rekognition-rest-1.0-SNAPSHOT.jar
 FUNCTION_REK_SEARCH=rekognition-search-picture-${ROOT_NAME}
 FUNCTION_REK_ADD=rekognition-add-picture-${ROOT_NAME}
 FUNCTION_REK_DEL=rekognition-del-picture-${ROOT_NAME}
+FUNCTION_REK_LABEL=rekognition-label-picture-${ROOT_NAME}
 
 updateFunction() {
    if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
@@ -37,3 +38,4 @@ cd setup
 updateFunction ${REGION} ${FUNCTION_REK_ADD} ${JAR_LOCATION}
 updateFunction ${REGION} ${FUNCTION_REK_DEL} ${JAR_LOCATION}
 updateFunction ${REGION} ${FUNCTION_REK_SEARCH} ${JAR_LOCATION}
+updateFunction ${REGION} ${FUNCTION_REK_LABEL} ${JAR_LOCATION}

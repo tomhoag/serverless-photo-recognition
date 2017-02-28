@@ -57,8 +57,9 @@ createLambdaFunction() {
         --handler $4 \
         --runtime java8 \
         --memory-size 192 \
-#        --vpc-config SubnetIds=subnet-8a6540d1,SecurityGroupIds=sg-99ebfbe5 \
         --timeout 60
+#        --vpc-config SubnetIds=subnet-8a6540d1,SecurityGroupIds=sg-99ebfbe5 \
+
 
 cat << EOF >> ${DELETE_SCRIPT}
 echo "Deleting the " $2 " Lambda function"
@@ -145,7 +146,7 @@ REKOGNITION_DELETE_FUNCTION_ARN=$(grep FunctionArn /tmp/dellambdaoutput | awk '{
 createLambdaFunction ${REGION} ${FUNCTION_REK_SEARCH} ${JAR_LOCATION} ${FUNCTION_REK_SEARCH_HANDLER} > /tmp/searchlambdaoutput
 REKOGNITION_SEARCH_FUNCTION_ARN=$(grep FunctionArn /tmp/searchlambdaoutput | awk '{print $2}' | xargs |sed -e 's/^"//'  -e 's/"$//' -e 's/,$//')
 
-createLambdaFunction ${REGION} ${FUNCTION_REK_LABEL} ${JAR_LOCATION} ${FUNCTION_REK_SEARCH_HANDLER} > /tmp/searchlambdaoutput
+createLambdaFunction ${REGION} ${FUNCTION_REK_LABEL} ${JAR_LOCATION} ${FUNCTION_REK_LABEL_HANDLER} > /tmp/searchlambdaoutput
 REKOGNITION_LABEL_FUNCTION_ARN=$(grep FunctionArn /tmp/searchlambdaoutput | awk '{print $2}' | xargs |sed -e 's/^"//'  -e 's/"$//' -e 's/,$//')
 
 # Setup the S3 events
@@ -225,6 +226,8 @@ cd setup
 updateFunction ${REGION} ${FUNCTION_REK_ADD} ${JAR_LOCATION}
 updateFunction ${REGION} ${FUNCTION_REK_DEL} ${JAR_LOCATION}
 updateFunction ${REGION} ${FUNCTION_REK_SEARCH} ${JAR_LOCATION}
+updateFunction ${REGION} ${FUNCTION_REK_LABEL} ${JAR_LOCATION}
+
 # Restore the Properties file
 
 # Import your API Gateway Swagger template. This command can run after the Cognito User Pool is created
