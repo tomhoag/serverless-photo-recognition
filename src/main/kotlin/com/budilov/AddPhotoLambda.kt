@@ -43,6 +43,9 @@ class AddPhotoLambda : RequestHandler<S3Event, String> {
         logger.log("Cognito ID: ${cognitoId}")
 
         val labels = rekognition.getLabels(srcBucket, srcKey)
+        
+        logger.log("rekognition label count: " + labels.size)
+        
         if (labels.isNotEmpty()) {
             val picture = PictureItem(srcKeyEncoded.hashCode().toString(), srcBucket + Properties._BUCKET_URL + "/" + srcKey, labels, null)
             logger.log("Saving picture: ${picture}")
@@ -51,6 +54,7 @@ class AddPhotoLambda : RequestHandler<S3Event, String> {
             // esService.add(cognitoId, picture)
             
             // Save the picture labels to Elaticache
+            logger.log(ecService.config())
             ecService.add(cognitoId, labels)
 
         } else {

@@ -1,5 +1,6 @@
 package com.squarepi
 
+
 import com.amazonaws.auth.EnvironmentVariableCredentialsProvider
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.services.elasticache.*
@@ -41,6 +42,7 @@ class ECLabelCountService {
 		//val client = AmazonElastiCacheClient(credentials);
 		val client = AmazonElastiCacheClient(EnvironmentVariableCredentialsProvider());
 		
+		/*
 		var dccRequest = DescribeCacheClustersRequest();
 		dccRequest.setShowCacheNodeInfo(true);
         //dccRequest.withCacheClusterId("spr-count-001")
@@ -60,9 +62,10 @@ class ECLabelCountService {
 		
 		host = cacheClusters[0].cacheNodes[0].endpoint.address
 		port = cacheClusters[0].cacheNodes[0].endpoint.port
+		*/
 		
-		//host = "spr-count2.hcehne.ng.0001.use1.cache.amazonaws.com"
-		//port = 6379
+		host = "spr-count3.hcehne.0001.use1.cache.amazonaws.com"
+		port = 6379
 		
 		//host = "localhost"
 		//port = 6379
@@ -71,16 +74,24 @@ class ECLabelCountService {
 		jedis = Jedis(host,port); 
 
 		jedis.connect() 
+		
+		jedis.incr("restarts")
+		
+		println("jedis restarts: " + jedis.get("restarts"))
 
 
+	}
+	
+	fun config(): String {
+		return host + ":" + port
 	}
 
 	fun add(userId: String, labels: List<String>) {
 		
 		//println("host: " + host + " port: " + port)
-		val jedis = Jedis(host,port);
+		//val jedis = Jedis(host,port);
  
-		jedis.connect(); 
+		//jedis.connect(); 
 		
 		for(label in labels) {
 			val key = userId+"|"+label
