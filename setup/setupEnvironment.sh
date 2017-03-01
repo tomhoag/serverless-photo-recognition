@@ -245,6 +245,18 @@ cat << EOF >> ${DELETE_SCRIPT}
 echo "Deleting API Gateway"
 aws apigateway delete-rest-api --rest-api-id ${GATEWAY_ID}
 
+echo "Deleting Cloudwatch logs for the Lambda functions"
+aws logs delete-log-group --log-group-name "/aws/lambda/${FUNCTION_REK_SEARCH}"
+aws logs delete-log-group --log-group-name "/aws/lambda/${FUNCTION_REK_ADD}"
+aws logs delete-log-group --log-group-name "/aws/lambda/${FUNCTION_REK_DEL}"
+
+echo "Deleting Cloudwatch logs for the API Gateway"
+LOGS=$(aws logs describe-log-groups --query 'logGroups[?ends_with(logGroupName,${GATEWAY_ID})].logGroupName' --output text)
+for log in ${LOGS}
+do
+aws logs delete-log-group --log-group-name ${log}
+done
+
 EOF
 
 ## Enable SRP on the cognito client id
